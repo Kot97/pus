@@ -25,6 +25,30 @@ struct ip6_hdr
   };
 */
 
+//                      1                   2                   3
+//   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |  Ver  |       TC      |              Flow Label               |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |        Payload Length         |  Next Header  |   Hop Limit   |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |                                                               |
+//  |                         Source Address                        |
+//  |                                                               |
+//  |                                                               |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |                                                               |
+//  |                      Destination Address                      |
+//  |                                                               |
+//  |                                                               |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |                                           .                   |
+//  |                       Extension Headers   .                   |
+//  |                                           .                   |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//
+
+
 namespace header
 {
 // TODO : extension headers
@@ -36,12 +60,9 @@ namespace header
         ipv6() : _header{0} {}
         explicit ipv6(const header_type &iph) : _header(iph) {}
 
-        // flow = 4 bits version, 8 bits TC, 20 bits flow-ID
-        //iphdr.ip6_flow = htonl ((6 << 28) | (0 << 20) | 0);
-
-        uint8_t  version() const { return ((_header.ip6_ctlun.ip6_un1.ip6_un1_flow >> 28) & 0x04);    } // PERR
-        uint8_t  tc()      const { return ((_header.ip6_ctlun.ip6_un1.ip6_un1_flow >> 20) & 0x0ff);   } // PERR
-        uint32_t flow_id() const { return ntohl(_header.ip6_ctlun.ip6_un1.ip6_un1_flow & 0x000fffff); } // PERR
+        uint8_t  version() const { return ((_header.ip6_ctlun.ip6_un1.ip6_un1_flow >> 28) & 0x04);    }
+        uint8_t  tc()      const { return ((_header.ip6_ctlun.ip6_un1.ip6_un1_flow >> 20) & 0x0ff);   }
+        uint32_t flow_id() const { return ntohl(_header.ip6_ctlun.ip6_un1.ip6_un1_flow & 0x000fffff); }
 
         uint32_t flow()    const { return ntohl(_header.ip6_ctlun.ip6_un1.ip6_un1_flow); }
         uint16_t plen()    const { return ntohs(_header.ip6_ctlun.ip6_un1.ip6_un1_plen); }

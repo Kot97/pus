@@ -9,15 +9,8 @@
 /*
 struct iphdr
   {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-    unsigned int ihl:4;
-    unsigned int version:4;
-#elif __BYTE_ORDER == __BIG_ENDIAN
     unsigned int version:4;
     unsigned int ihl:4;
-#else
-# error	"Please fix <bits/endian.h>"
-#endif
     u_int8_t tos;
     u_int16_t tot_len;
     u_int16_t id;
@@ -30,6 +23,25 @@ struct iphdr
     // The options start here.
   };
 */
+
+//                      1                   2                   3
+//   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |  Ver  |  Len  |      TOS      |         Total Length          |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |          Identifier           |Flags|     Fragment Offset     |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |      TTL      |    Protocol   |        Header Checksum        |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |                         Source Address                        |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |                      Destination Address                      |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |                    Options                    |    Padding    |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |                             data                              |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//
 
 namespace header
 {
@@ -53,17 +65,17 @@ namespace header
         uint32_t saddr()    const { return ntohl(_header.saddr);    }
         uint32_t daddr()    const { return ntohl(_header.daddr);    }
         
-        void version(uint8_t version)    { _header.version = version;             }
-        void ihl(uint8_t ihl)            { _header.ihl = ihl;    }
-        void tos(uint8_t tos)            { _header.tos = tos; }
-        void tot_len(uint16_t tot_len)   { _header.tot_len = htons(tot_len); }
-        void id(uint16_t id)             { _header.id = htons(id); }
-        void frag_off(uint16_t frag_off) { _header.frag_off = htons(frag_off); }
-        void ttl(uint8_t ttl)            { _header.ttl = ttl; }
-        void protocol(uint8_t protocol)  { _header.protocol = protocol; }
-        void check(uint16_t check)       { _header.check = htons(check); }
-        void saddr(uint32_t saddr)       { _header.saddr = htonl(saddr); }
-        void daddr(uint32_t daddr)       { _header.daddr = htonl(daddr); }
+        void version(uint8_t version)    { _header.version = version;           }
+        void ihl(uint8_t ihl)            { _header.ihl = ihl;                   }
+        void tos(uint8_t tos)            { _header.tos = tos;                   }
+        void tot_len(uint16_t tot_len)   { _header.tot_len = htons(tot_len);    }
+        void id(uint16_t id)             { _header.id = htons(id);              }
+        void frag_off(uint16_t frag_off) { _header.frag_off = htons(frag_off);  }
+        void ttl(uint8_t ttl)            { _header.ttl = ttl;                   }
+        void protocol(uint8_t protocol)  { _header.protocol = protocol;         }
+        void check(uint16_t check)       { _header.check = htons(check);        }
+        void saddr(uint32_t saddr)       { _header.saddr = htonl(saddr);        }
+        void daddr(uint32_t daddr)       { _header.daddr = htonl(daddr);        }
 
         void compute_checksum() { check( checksum(reinterpret_cast<uint16_t*>(&_header), sizeof(iphdr))); }
 
