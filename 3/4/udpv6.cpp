@@ -17,10 +17,12 @@
 #include "../header/ipv6.hpp"
 #include "../header/options.hpp"
 
-#define SOURCE_PORT 5050
-#define SOURCE_ADDRESS "::ffff:192:0:2:1"
+
+
+#define SOURCE_PORT 12344
+#define SOURCE_ADDRESS "2a02:a31a:a03d:7580:7c97:5950:50f0:b1f0"
 // należy zmienić interface na ten, którego się używa
-#define INTERFACE "wwp0s20u2i1"
+#define INTERFACE "wlp2s0"
 
 namespace asio = boost::asio;
 using boost::system::error_code;
@@ -43,9 +45,6 @@ int main(int argc, char** argv)
     // nagłówek UDP
     header::udp udp_header;
 
-    // nagłówek IP
-    header::ipv6 ip_header;
-
     asio::io_context context;
     error_code err;
     asio::ip::udp::resolver resolver(context);
@@ -65,43 +64,12 @@ int main(int argc, char** argv)
         if(i.endpoint().address().is_v6()) endpoint = i.endpoint();
 
     socket.open(asio::generic::raw_protocol(endpoint.protocol().family(), endpoint.protocol().protocol()));
-    socket.set_option(asio::ip::ipv6_hdrincl(), err);
-    if(err)
-    {
-        error("set_option", err);
-        return 1;
-    }
+
 
     socket.set_option(asio::ip::ipv6_checksum(), err);
     if(err)
     {
         error("set_option", err);
-        return 1;
-    }
-
-    // wypełnienie pól nagłówka IP
-    ip_header.flow(6, 0, 0);
-
-    // identyfikator enkapsulowanego protokolu
-    ip_header.next(IPPROTO_UDP);
-
-    // maksymalna liczba skoków
-    ip_header.hlim(64);
-
-    // rozmiar pakietu oprócz nagłówka
-    ip_header.plen(udp_header.length());
-
-    // adres źródłowy
-    if( ip_header.saddr(SOURCE_ADDRESS) != 1 )
-    {
-        std::cerr << "Error during source IPv6 address convertion to in6_addr" << std::endl;
-        return 1;
-    }
-
-    // adres docelowy
-    if( ip_header.daddr(endpoint.address().to_string().c_str()) != 1)
-    {
-        std::cerr << "Error during destination IPv6 address convertion to in6_addr" << std::endl;
         return 1;
     }
 
@@ -115,11 +83,9 @@ int main(int argc, char** argv)
     // rozmiar nagłówka UDP i danych - w tym przypadku tylko nagłówka
     udp_header.len(udp_header.length());
 
-    udp_header.compute_checksum(ip_header.saddr(), ip_header.daddr()); 
-
     asio::streambuf request_buffer;
     std::ostream os(&request_buffer);
-    os << ip_header << udp_header;
+    os << udp_header;
 
     std::string address_with_interface(endpoint.address().to_v6().to_string());
     address_with_interface += "%";
