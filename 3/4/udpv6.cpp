@@ -4,7 +4,7 @@
  * Kompilacja:          clang++ -std=c++14 -o udpv6 udpv6.cpp -lpthread
  *                      Zamiast clang++ można użyć g++, ale nie jest to zalecane
  *                      Do skompilowaniu programu potrzebna jest biblioteka Boost.Asio oraz Boost.LexicalCast
- * Uruchamianie:        ./udpv6 <adres IP lub nazwa domenowa> <numer portu>
+ * Uruchamianie:        sudo ./udpv6 <adres IP lub nazwa domenowa> <numer portu>
  */
 
 #include <boost/asio/ip/udp.hpp>
