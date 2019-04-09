@@ -65,6 +65,16 @@ std::istream istr(&buff);
 // std::ostream ostr(&buff);
 asio::ip::icmp::endpoint remote;
 
+/*
+.##.....##....###....##....##.########..##.......########.########.
+.##.....##...##.##...###...##.##.....##.##.......##.......##.....##
+.##.....##..##...##..####..##.##.....##.##.......##.......##.....##
+.#########.##.....##.##.##.##.##.....##.##.......######...########.
+.##.....##.#########.##..####.##.....##.##.......##.......##...##..
+.##.....##.##.....##.##...###.##.....##.##.......##.......##....##.
+.##.....##.##.....##.##....##.########..########.########.##.....##
+*/
+
 void async_receive_from_handler(const error_code &err, size_t bytes)
 {
     if(err)
@@ -81,12 +91,12 @@ void async_receive_from_handler(const error_code &err, size_t bytes)
     buff.commit(256);
     if(remote.address().is_v6())
     {
-        header::ipv6 hipv6;
+        /* header::ipv6 hipv6;
         istr >> hipv6;
         in6_addr temp_daddr = hipv6.daddr();
         char daddr[INET6_ADDRSTRLEN];
         inet_ntop(AF_INET6, &temp_daddr, daddr, INET6_ADDRSTRLEN);
-        std::cout << "v6 " << "hop limit:" << hipv6.hlim() << " length:" << hipv6.length() << " destination address:" <<  daddr << " ";
+        std::cout << "v6 " << "hop limit:" << int(hipv6.hlim()) << " length:" << hipv6.length() << " destination address:" <<  daddr << " "; */
 
     }
     else
@@ -114,6 +124,16 @@ void async_receive_from_handler(const error_code &err, size_t bytes)
 
     receiving_socket.async_receive_from(buff.prepare(256), remote, async_receive_from_handler);
 }
+
+/*
+.##.....##....###....####.##....##
+.###...###...##.##....##..###...##
+.####.####..##...##...##..####..##
+.##.###.##.##.....##..##..##.##.##
+.##.....##.#########..##..##..####
+.##.....##.##.....##..##..##...###
+.##.....##.##.....##.####.##....##
+*/
 
 //TODO: Dopisać akceptowanie wracających pongów
 int main(int argc, char** argv) 
@@ -157,7 +177,7 @@ int main(int argc, char** argv)
     asio::ip::unicast::hops ttl(64);
     socket.set_option(ttl);
 
-    
+    uint16_t ping_type = 8;
     asio::ip::icmp::endpoint final_endpoint;
     if(endpoint.address().is_v6())
     {
@@ -171,6 +191,7 @@ int main(int argc, char** argv)
         }
         receiving_socket.open(asio::ip::icmp::v6());
         receiving_socket.bind(asio::ip::icmp::endpoint(asio::ip::icmp::v6(), 0));
+        ping_type += 120;
     }
     else
     {
@@ -200,7 +221,7 @@ int main(int argc, char** argv)
     for(int i = 1; i<5; i++)
     {
         header::icmp icmp_header;
-        icmp_header.type(8);
+        icmp_header.type(ping_type);
         icmp_header.code(0);
 
         uint32_t pid = getpid();

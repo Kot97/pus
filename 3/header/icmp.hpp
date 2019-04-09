@@ -49,7 +49,8 @@ namespace header
         icmp() : _header{0} {}
         explicit icmp(const header_type &icmph) : _header(icmph) {}
 
-        uint16_t type() const { return ntohs(_header.type); }
+        // uint16_t type() const { return ntohs(_header.type); }
+        uint16_t type() const { return _header.type; }
         uint16_t code() const { return ntohs(_header.code); }
         uint16_t check() const { return ntohs(_header.checksum); }
         uint16_t id() const { return ntohs(_header.un.echo.id); }
