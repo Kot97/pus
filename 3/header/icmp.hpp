@@ -40,7 +40,6 @@
 
 namespace header
 {
-//TODO : reszta pól nagłówka
     class icmp : public abstract 
     {
     public:

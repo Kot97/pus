@@ -20,11 +20,6 @@
 #include <boost/asio/streambuf.hpp>
 #include <boost/asio/buffer.hpp>
 
-// #define SOURCE_PORT 12344
-// #define SOURCE_ADDRESS "2a02:a31a:a03d:7580:7c97:5950:50f0:b1f0"
-// należy zmienić interface na ten, którego się używa
-// #define INTERFACE "wlp2s0"
-
 
 namespace asio = boost::asio;
 using boost::system::error_code;
@@ -58,11 +53,9 @@ asio::io_context context;
 asio::ip::icmp::socket receiving_socket(context);
 
 
-// std::array<char, 256> buff;
+
 asio::streambuf buff(256);
 std::istream istr(&buff);
-// asio::streambuf::mutable_buffers_type buffs = buff.prepare(256);
-// std::ostream ostr(&buff);
 asio::ip::icmp::endpoint remote;
 
 /*
@@ -83,10 +76,8 @@ void async_receive_from_handler(const error_code &err, size_t bytes)
         return;
     }
 
-    // std::cout << "rcvfrom success" << std::flush << std::endl;
+    
     std::cout << "Pong received: ";
-    /* for(const auto& s: buff)
-        std::cout << s << ' '; */
 
     buff.commit(256);
     if(remote.address().is_v6())
@@ -103,12 +94,8 @@ void async_receive_from_handler(const error_code &err, size_t bytes)
     {
         header::ipv4 hipv4;
         
-        // buff.consume(256);
         
         istr >> hipv4;
-        // const struct iphdr hdr = hipv4.get();
-        // uint8_t test = hipv4.ttl();
-        // fprintf(stderr, "%u", test);
         std::cout << "v4 " << "hop limit:" << int(hipv4.ttl()) << " length:" << hipv4.length() << " destination address:" <<  header::address_to_string(hipv4.daddr()) << " ";
 
         
@@ -135,7 +122,7 @@ void async_receive_from_handler(const error_code &err, size_t bytes)
 .##.....##.##.....##.####.##....##
 */
 
-//TODO: Dopisać akceptowanie wracających pongów
+
 int main(int argc, char** argv) 
 {
     if (argc != 2 && argc != 3) 
@@ -146,21 +133,13 @@ int main(int argc, char** argv)
 
     header::icmp icmp_header;
 
-    /* asio::io_context context; */
+    
     error_code err;
     asio::ip::icmp::resolver resolver(context);
     asio::ip::icmp::endpoint endpoint;
 
     asio::ip::icmp::socket socket(context);
-    /* asio::ip::icmp::socket receiving_socket(context); */
-
     
-
-
-    
-    
-
-
 
     auto result = resolver.resolve(argv[1], nullptr, err);
     if(err)
@@ -170,7 +149,7 @@ int main(int argc, char** argv)
     }
 
     for(auto&& i : result)
-        /* if(i.endpoint().address().is_v6())  */endpoint = i.endpoint();
+        endpoint = i.endpoint();
 
     socket.open(endpoint.protocol());
 
@@ -200,18 +179,7 @@ int main(int argc, char** argv)
         receiving_socket.bind(asio::ip::icmp::endpoint(asio::ip::icmp::v4(), 0));
     }
 
-    /* std::array<char, 256> buff;
-    asio::ip::icmp::endpoint remote;
-    receiving_socket.async_receive_from(asio::buffer(buff), remote, [&](const error_code &err, size_t bytes)
-    {
-        if(err)
-        {
-            error("async_receive_from", err);
-            return;
-        }
-
-        receiving_socket.async_receive_from(asio::buffer(buff), remote, )
-    }); */
+    
     receiving_socket.async_receive_from(buff.prepare(256), remote, async_receive_from_handler);
 
     socket.connect(final_endpoint);
@@ -231,21 +199,13 @@ int main(int argc, char** argv)
         icmp_header.sequence(htons(i));
 
         std::string data = random_string(22);
-        // std::string data("");
 
         icmp_header.compute_checksum(data.data(), data.length());
-        // std::cerr << sizeof(data) << std::endl;
-
-
 
         asio::streambuf request_buffer;
         std::ostream os(&request_buffer);
 
-
-
         os << icmp_header << data;
-        
-
 
         socket.send(request_buffer.data(), 0, err);
         if(err)
