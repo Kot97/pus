@@ -40,7 +40,6 @@
 
 namespace header
 {
-//TODO : reszta pól nagłówka
     class icmp : public abstract 
     {
     public:
@@ -49,7 +48,8 @@ namespace header
         icmp() : _header{0} {}
         explicit icmp(const header_type &icmph) : _header(icmph) {}
 
-        uint16_t type() const { return ntohs(_header.type); }
+        // uint16_t type() const { return ntohs(_header.type); }
+        uint16_t type() const { return _header.type; }
         uint16_t code() const { return ntohs(_header.code); }
         uint16_t check() const { return ntohs(_header.checksum); }
         uint16_t id() const { return ntohs(_header.un.echo.id); }
@@ -64,6 +64,39 @@ namespace header
         void gateway(uint16_t gateway) { _header.un.gateway = gateway; }
 
         void compute_checksum() { check(checksum(reinterpret_cast<uint16_t*>(&_header), sizeof(icmphdr))); }
+        void compute_checksum(const void* data, size_t data_size)
+        {
+            unsigned short *buf = reinterpret_cast<uint16_t*>(&_header);
+            int bufsz = sizeof(icmphdr);
+            unsigned long sum = 0;
+            while( bufsz > 1 ) 
+            {
+                sum += *buf++;
+                bufsz -= 2;
+            }
+            if( bufsz == 1 ) sum += *(unsigned char *)buf;
+            // sum = (sum & 0xffff) + (sum >> 16);
+            // sum = (sum & 0xffff) + (sum >> 16);
+
+            // unsigned short *buf2 = reinterpret_cast<const uint16_t*>(data);
+            const uint16_t *buf2 = reinterpret_cast<const uint16_t*>(data);
+            int bufsz2 = data_size;
+            unsigned long sum2 = 0;
+            while( bufsz2 > 1 ) 
+            {
+                sum2 += *buf2++;
+                bufsz2 -= 2;
+            }
+            if( bufsz2 == 1 ) sum2 += *(unsigned char *)buf2;
+            // sum2 = (sum2 & 0xffff) + (sum2 >> 16);
+            // sum2 = (sum2 & 0xffff) + (sum2 >> 16);
+
+            sum += sum2;
+            sum = (sum & 0xffff) + (sum >> 16);
+            sum = (sum & 0xffff) + (sum >> 16);
+            
+            check(~sum);
+        }
 
         int length() const { return sizeof(_header); }
         char* get_header() { return reinterpret_cast<char*>(&_header); }
