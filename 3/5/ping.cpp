@@ -71,6 +71,8 @@ asio::ip::icmp::endpoint remote;
 */
 int received_counter = 4;
 //TODO: sprawdzanie typu pakietu icmp
+/* Funkcja obsługująca odebrany pakiet icmp
+sprawdza typ odebranego pakietu, a następnie wypełnia struktury nagłówków i odczytuje z nich interesujące nas informacje. */
 void async_receive_from_handler(const error_code &err, size_t bytes)
 {
     if(err)
@@ -127,6 +129,8 @@ void timer_handler(const error_code &err);
 
 uint16_t sent_counter = 1;
 asio::deadline_timer tmr(context, boost::posix_time::seconds(1));
+/* Funkcja obsługująca wysłanie pakietu
+Uruchamia oczekiwanie 1 sek na wysłanie kolejnego */
 void async_send_handler(const error_code &err, const size_t sent)
 {
     if(sent_counter++<5)
@@ -146,6 +150,8 @@ void async_send_handler(const error_code &err, const size_t sent)
 uint16_t ping_type = 8;
 asio::ip::icmp::endpoint endpoint;
 asio::ip::icmp::socket sending_socket(context);
+/* Funkcja obsługująca zdarzenie minięcia sekundy
+Buduje pakiet icmp, a następnie wysyła go */
 void timer_handler(const error_code &err)
 {
 
@@ -199,7 +205,7 @@ int main(int argc, char** argv)
     asio::ip::icmp::resolver resolver(context);
     
     
-
+    // Rozwiązywanie nazwy
     auto result = resolver.resolve(argv[1], nullptr, err);
     if(err)
     {
@@ -212,11 +218,13 @@ int main(int argc, char** argv)
 
     sending_socket.open(endpoint.protocol());
 
+    // Ustawienie ttl
     asio::ip::unicast::hops ttl(64);
     sending_socket.set_option(ttl);
 
     
     asio::ip::icmp::endpoint final_endpoint;
+    /* Zbudowanie odpowiedniego adresu jeżeli jest link-local, oraz uruchomienie nasłuchiwania na odpowiednim protokole */
     if(endpoint.address().is_v6())
     {
         if(endpoint.address().to_v6().is_link_local())
