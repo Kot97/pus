@@ -19,6 +19,8 @@
 #include <boost/asio/ip/unicast.hpp>
 #include <boost/asio/streambuf.hpp>
 #include <boost/asio/buffer.hpp>
+#include <boost/asio.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 
 namespace asio = boost::asio;
@@ -67,7 +69,8 @@ asio::ip::icmp::endpoint remote;
 .##.....##.##.....##.##...###.##.....##.##.......##.......##....##.
 .##.....##.##.....##.##....##.########..########.########.##.....##
 */
-
+int received_counter = 4;
+//TODO: sprawdzanie typu pakietu icmp
 void async_receive_from_handler(const error_code &err, size_t bytes)
 {
     if(err)
@@ -103,13 +106,71 @@ void async_receive_from_handler(const error_code &err, size_t bytes)
 
     header::icmp hicmp;
     istr >> hicmp;
-
     std::cout << "type:" << hicmp.type() << " code:" << hicmp.code() << " id:" << hicmp.id() << " sequence:" << hicmp.sequence();
     
     buff.consume(256);
     std::cout << std::endl << std::flush;
+    received_counter--;
+    if(received_counter>0) receiving_socket.async_receive_from(buff.prepare(256), remote, async_receive_from_handler);
+}
 
-    receiving_socket.async_receive_from(buff.prepare(256), remote, async_receive_from_handler);
+/*
+..######..########.##....##.########.....##.....##....###....##....##.########..##.......########.########.
+.##....##.##.......###...##.##.....##....##.....##...##.##...###...##.##.....##.##.......##.......##.....##
+.##.......##.......####..##.##.....##....##.....##..##...##..####..##.##.....##.##.......##.......##.....##
+..######..######...##.##.##.##.....##....#########.##.....##.##.##.##.##.....##.##.......######...########.
+.......##.##.......##..####.##.....##....##.....##.#########.##..####.##.....##.##.......##.......##...##..
+.##....##.##.......##...###.##.....##....##.....##.##.....##.##...###.##.....##.##.......##.......##....##.
+..######..########.##....##.########.....##.....##.##.....##.##....##.########..########.########.##.....##
+*/
+void timer_handler(const error_code &err);
+
+uint16_t sent_counter = 1;
+asio::deadline_timer tmr(context, boost::posix_time::seconds(1));
+void async_send_handler(const error_code &err, const size_t sent)
+{
+    if(sent_counter++<5)
+        tmr.async_wait(timer_handler);
+
+}
+
+/*
+.########.####.##.....##.########.########.....##.....##....###....##....##.########..##.......########.########.
+....##.....##..###...###.##.......##.....##....##.....##...##.##...###...##.##.....##.##.......##.......##.....##
+....##.....##..####.####.##.......##.....##....##.....##..##...##..####..##.##.....##.##.......##.......##.....##
+....##.....##..##.###.##.######...########.....#########.##.....##.##.##.##.##.....##.##.......######...########.
+....##.....##..##.....##.##.......##...##......##.....##.#########.##..####.##.....##.##.......##.......##...##..
+....##.....##..##.....##.##.......##....##.....##.....##.##.....##.##...###.##.....##.##.......##.......##....##.
+....##....####.##.....##.########.##.....##....##.....##.##.....##.##....##.########..########.########.##.....##
+*/
+uint16_t ping_type = 8;
+asio::ip::icmp::endpoint endpoint;
+asio::ip::icmp::socket sending_socket(context);
+void timer_handler(const error_code &err)
+{
+
+    header::icmp icmp_hdr;
+    icmp_hdr.type(ping_type);
+    icmp_hdr.code(0);
+    uint32_t pid = getpid();
+    uint16_t lower_pid = (uint16_t) pid & 0x0000FFFF;
+
+    icmp_hdr.id(htons(lower_pid));
+    icmp_hdr.sequence(htons(sent_counter));
+
+    std::string data = random_string(22);
+
+    icmp_hdr.compute_checksum(data.data(), data.length());
+
+    asio::streambuf request_buffer;
+    std::ostream os(&request_buffer);
+
+    os << icmp_hdr << data;
+
+    // sending_socket.send(request_buffer.data(), 0, err);
+    tmr.expires_from_now(boost::posix_time::seconds(1));
+    sending_socket.async_send(request_buffer.data(), async_send_handler);
+
 }
 
 /*
@@ -131,14 +192,12 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    header::icmp icmp_header;
+    header::icmp icmp_hdr;
 
     
     error_code err;
     asio::ip::icmp::resolver resolver(context);
-    asio::ip::icmp::endpoint endpoint;
-
-    asio::ip::icmp::socket socket(context);
+    
     
 
     auto result = resolver.resolve(argv[1], nullptr, err);
@@ -151,12 +210,12 @@ int main(int argc, char** argv)
     for(auto&& i : result)
         endpoint = i.endpoint();
 
-    socket.open(endpoint.protocol());
+    sending_socket.open(endpoint.protocol());
 
     asio::ip::unicast::hops ttl(64);
-    socket.set_option(ttl);
+    sending_socket.set_option(ttl);
 
-    uint16_t ping_type = 8;
+    
     asio::ip::icmp::endpoint final_endpoint;
     if(endpoint.address().is_v6())
     {
@@ -182,32 +241,51 @@ int main(int argc, char** argv)
     
     receiving_socket.async_receive_from(buff.prepare(256), remote, async_receive_from_handler);
 
-    socket.connect(final_endpoint);
+    sending_socket.connect(final_endpoint);
     
+    // header::icmp icmp_hdr;
+    icmp_hdr.type(ping_type);
+    icmp_hdr.code(0);
+    uint32_t pid = getpid();
+    uint16_t lower_pid = (uint16_t) pid & 0x0000FFFF;
 
+    icmp_hdr.id(htons(lower_pid));
+    icmp_hdr.sequence(htons(sent_counter));
+
+    std::string data = random_string(22);
+
+    icmp_hdr.compute_checksum(data.data(), data.length());
+
+    asio::streambuf request_buffer;
+    std::ostream os(&request_buffer);
+
+    os << icmp_hdr << data;
+
+    // sending_socket.send(request_buffer.data(), 0, err);
+    sending_socket.async_send(request_buffer.data(), async_send_handler);
     
-    for(int i = 1; i<5; i++)
+    /* for(int i = 1; i<5; i++)
     {
-        header::icmp icmp_header;
-        icmp_header.type(ping_type);
-        icmp_header.code(0);
+        header::icmp icmp_hdr;
+        icmp_hdr.type(ping_type);
+        icmp_hdr.code(0);
 
         uint32_t pid = getpid();
         uint16_t lower_pid = (uint16_t) pid & 0x0000FFFF;
 
-        icmp_header.id(htons(lower_pid));
-        icmp_header.sequence(htons(i));
+        icmp_hdr.id(htons(lower_pid));
+        icmp_hdr.sequence(htons(i));
 
         std::string data = random_string(22);
 
-        icmp_header.compute_checksum(data.data(), data.length());
+        icmp_hdr.compute_checksum(data.data(), data.length());
 
         asio::streambuf request_buffer;
         std::ostream os(&request_buffer);
 
-        os << icmp_header << data;
+        os << icmp_hdr << data;
 
-        socket.send(request_buffer.data(), 0, err);
+        sending_socket.send(request_buffer.data(), 0, err);
         if(err)
         {
             error("send_to", err);
@@ -215,12 +293,12 @@ int main(int argc, char** argv)
         }
         
         
-    }
+    } */
 
-    socket.close();
+    
 
     context.run();
-
+    sending_socket.close();
     receiving_socket.close();
 
     return 1;
