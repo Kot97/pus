@@ -167,7 +167,7 @@ void timer_handler(const error_code &err)
 
     os << icmp_hdr << data;
 
-    // sending_socket.send(request_buffer.data(), 0, err);
+    
     tmr.expires_from_now(boost::posix_time::seconds(1));
     sending_socket.async_send(request_buffer.data(), async_send_handler);
 
@@ -243,7 +243,7 @@ int main(int argc, char** argv)
 
     sending_socket.connect(final_endpoint);
     
-    // header::icmp icmp_hdr;
+    
     icmp_hdr.type(ping_type);
     icmp_hdr.code(0);
     uint32_t pid = getpid();
@@ -261,42 +261,9 @@ int main(int argc, char** argv)
 
     os << icmp_hdr << data;
 
-    // sending_socket.send(request_buffer.data(), 0, err);
+    
     sending_socket.async_send(request_buffer.data(), async_send_handler);
     
-    /* for(int i = 1; i<5; i++)
-    {
-        header::icmp icmp_hdr;
-        icmp_hdr.type(ping_type);
-        icmp_hdr.code(0);
-
-        uint32_t pid = getpid();
-        uint16_t lower_pid = (uint16_t) pid & 0x0000FFFF;
-
-        icmp_hdr.id(htons(lower_pid));
-        icmp_hdr.sequence(htons(i));
-
-        std::string data = random_string(22);
-
-        icmp_hdr.compute_checksum(data.data(), data.length());
-
-        asio::streambuf request_buffer;
-        std::ostream os(&request_buffer);
-
-        os << icmp_hdr << data;
-
-        sending_socket.send(request_buffer.data(), 0, err);
-        if(err)
-        {
-            error("send_to", err);
-            return 1;
-        }
-        
-        
-    } */
-
-    
-
     context.run();
     sending_socket.close();
     receiving_socket.close();
