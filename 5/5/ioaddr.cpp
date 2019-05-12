@@ -1,20 +1,17 @@
 /*
- * Data:                2019-05-09
+ * Data:                2019-05-12
  * Autor:               Marcin Kurdziel
- * Kompilacja:          $ gcc ioarp.c -o ioarp
- * Uruchamianie:        $ ./ioarp <adres IPv4> <adres MAC>
+ * Kompilacja:          clang++ -o ioaddr ioaddr.cpp
+ * Uruchamianie:        ./ioaddr <INTERFACE> add <IPv4> <mask>
+ *                      ./ioaddr <INTERFACE> down
  */
 
 #include <cstdio>
-#include <cstdlib>
-#include <string>
+#include <cstring>
 #include <sys/socket.h>
-#include <sys/types.h>
-#include <string.h>
 #include <errno.h>
 #include <unistd.h>
 #include <arpa/inet.h> /* inet_pton() */
-#include <net/if_arp.h>
 #include <netinet/in.h> /* struct sockaddr_in */
 #include <sys/ioctl.h>
 #include <net/if.h>
@@ -27,27 +24,98 @@ int main(int argc, char **argv)
         fprintf(stderr, "Invocation: %s <INTERFACE> down\n", argv[0]);
         return 1;
     }
-    if(argv[3] == "add")
+
+    ifreq ifr;
+    memset(&ifr, 0, sizeof(ifreq));
+    strcpy(ifr.ifr_name, argv[1]);
+
+    if(!std::strcmp(argv[2], "add"))
     {
         if(argc != 5)
         {
             fprintf(stderr, "Invocation: %s <INTERFACE> add <IPv4> <mask>\n", argv[0]);
-            fprintf(stderr, "Invocation: %s <INTERFACE> down\n", argv[0]);
             return 1;
         }
 
-        
+        int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+        if (sockfd == -1) 
+        {
+            perror("socket()");
+            return 1;
+        }
+
+        ifreq check;
+        memset(&check, 0, sizeof(ifreq));
+        strcpy(check.ifr_name, argv[1]);
+        if(ioctl(sockfd, SIOCGIFFLAGS, &check) == -1)
+        {
+            perror("check if interface is up");
+            return 1;
+        }
+        if(!(check.ifr_flags & IFF_UP))
+        {
+            printf("interface isn't up\n");
+            close(sockfd);
+            return 1;
+        }
+
+        ifr.ifr_addr.sa_family = AF_INET;
+        sockaddr_in *addr = (sockaddr_in*)&ifr.ifr_addr;
+
+        if(inet_pton(AF_INET, argv[3], &addr->sin_addr) != 1)
+        {
+            perror("inet_pton() address");
+            close(sockfd);
+            return 1;
+        }
+
+        if(ioctl(sockfd, SIOCSIFADDR, &ifr) == -1)
+        {
+            perror("address add");
+            close(sockfd);
+            return 1;
+        }
+
+        if(inet_pton(AF_INET, argv[4], &addr->sin_addr) != 1)
+        {
+            perror("inet_pton() mask");
+            close(sockfd);
+            return 1;
+        }
+
+        if(ioctl(sockfd, SIOCSIFNETMASK, &ifr) == -1)
+        {
+            perror("mask set");
+            close(sockfd);
+            return 1;
+        }
+
+        close(sockfd);
     }
-    else if(argv[3] == "down")
+    else if(!std::strcmp(argv[2], "down"))
     {
         if(argc != 3)
         {
-            fprintf(stderr, "Invocation: %s <INTERFACE> add <IPv4> <mask>\n", argv[0]);
             fprintf(stderr, "Invocation: %s <INTERFACE> down\n", argv[0]);
             return 1;
         }
 
+        int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+        if (sockfd == -1) 
+        {
+            perror("socket()");
+            return 1;
+        }
 
+        ifr.ifr_flags &= ~IFF_UP;
+        if(ioctl(sockfd, SIOCSIFFLAGS, &ifr) == -1)
+        {
+            perror("address remove");
+            close(sockfd);
+            return 1;
+        }
+
+        close(sockfd);
     }
     else
     {
@@ -55,5 +123,4 @@ int main(int argc, char **argv)
         fprintf(stderr, "Invocation: %s <INTERFACE> down\n", argv[0]);
         return 1;
     }
-    
 }

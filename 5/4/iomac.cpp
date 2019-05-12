@@ -1,7 +1,7 @@
 /*
  * Data:                2019-05-09
  * Autor:               Marcin Kurdziel
- * Kompilacja:          $ gcc ioarp.c -o ioarp
+ * Kompilacja:          $ clang++ -o ioarp ioarp.cpp
  * Uruchamianie:        $ ./ioarp <adres IPv4> <adres MAC>
  */
 
