@@ -1,8 +1,8 @@
 /*
  * Data:                2019-05-09
  * Autor:               Marcin Kurdziel
- * Kompilacja:          $ clang++ -o ioarp ioarp.cpp
- * Uruchamianie:        $ ./ioarp <adres IPv4> <adres MAC>
+ * Kompilacja:          $ clang++ -o iomac iomac.cpp
+ * Uruchamianie:        $ ./iomac <nazwa interfejsu> <adres MAC> <MTU>
  */
 
 #include <cstdio>
