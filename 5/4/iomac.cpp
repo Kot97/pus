@@ -124,7 +124,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    fprintf(stdout, "Hwaddr: %2x:%2x:%2x:%2x:%2x:%2x\n",
+    fprintf(stdout, "Hwaddr: %02x:%02x:%02x:%02x:%02x:%02x\n",
                  static_cast<unsigned char>(print.ifr_ifru.ifru_hwaddr.sa_data[0]),
                  static_cast<unsigned char>(print.ifr_ifru.ifru_hwaddr.sa_data[1]),
                  static_cast<unsigned char>(print.ifr_ifru.ifru_hwaddr.sa_data[2]),
