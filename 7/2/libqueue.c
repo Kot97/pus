@@ -1,21 +1,19 @@
 #include <stdio.h>
 
-unsigned short internet_checksum(unsigned short *addr, int count) {
+unsigned short internet_checksum(unsigned short *addr, int count) 
+{
+    // slowa kluczowego register sie juz nie uzywa od bardzo dawna...
+    int sum = 0;
 
-    register int sum = 0;
-
-    while (count > 1) {
+    while (count > 1)
+    {
         sum += *addr++;
         count -= 2;
     }
 
-    if (count > 0) {
-        sum +=   *(unsigned char *) addr;
-    }
+    if (count > 0) sum +=   *(unsigned char *) addr;
 
-    while (sum >> 16) {
-        sum = (sum & 0xffff) + (sum >> 16);
-    }
+    while (sum >> 16) sum = (sum & 0xffff) + (sum >> 16);
 
     return (~sum);
 }
@@ -29,7 +27,8 @@ unsigned char* swap_bytes(unsigned char *data, unsigned int data_length) {
     head = data;
     tail = &data[data_length - 1];
 
-    while (head < tail) {
+    while (head < tail)
+    {
         tmp = *head;
         *head = *tail;
         *tail = tmp;
