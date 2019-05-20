@@ -23,7 +23,7 @@
 
 void print_error(const char* msg)
 {
-    fprintf(stderr, msg);
+    fprintf(stderr, "%s", msg);
     exit(EXIT_FAILURE);
 }
 
@@ -34,7 +34,7 @@ static int callback(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq_
     u_int32_t id = print_packet(nfa);
 
     unsigned char *data_;
-    int len = nfq_get_payload(nfa, &data_);
+    int len = nfq_get_payload(nfa, &data_);     // nagłówek IP, nagłówek ICMP, dane
     if(len == -1) print_error("nfq_get_payload error\n");
 
     struct iphdr *ipheader = (struct iphdr*)data_;
@@ -44,8 +44,9 @@ static int callback(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq_
 
     // iphdr: data_, ..., data_ + sizeof(iphdr) - 1
     // icmphdr: data_ + sizeof(iphdr), ..., data_ + sizeof(iphdr) + sizeof(icmphdr) - 1
-    // icmp payload: data_ + sizeof(iphdr) + sizeof(icmphdr), ..., data_ + len- 1 ??? PERR
+    // icmp payload: data_ + sizeof(iphdr) + sizeof(icmphdr), ..., data_ + len- 1
 
+    // swap_bytes(icmp_payload, icmp_payload_size)
     swap_bytes(data_ + sizeof(*ipheader) + sizeof(struct icmphdr), len - sizeof(*ipheader) - sizeof(struct icmphdr));
     memset(data_ + sizeof(*ipheader) + 2*sizeof(uint8_t), 0, sizeof(uint16_t)); // set checksum to 0
 
