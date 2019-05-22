@@ -15,7 +15,7 @@
 #include <net/if.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <iptables.h>
+// #include <iptables.h>
 #include <libiptc/libiptc.h>
 
 typedef struct xtc_handle iptc_handle_t;
