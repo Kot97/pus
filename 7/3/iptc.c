@@ -1,8 +1,10 @@
 /*
  * Data:                2009-04-15
+ * Data modyfikacji:    2019-05-22
  * Autor:               Jakub Gasior <quebes@mars.iti.pk.edu.pl>
- * Kompilacja:          $ gcc iptc.c -o iptc -liptc
- * Uruchamianie:        $ ./iptc -h
+ * Zmodyfikował:        Marcin Kurdziel
+ * Kompilacja:          clang -o iptc iptc.c -lip4tc
+ * Uruchamianie:        ./iptc -h
  */
 
 #include <stdio.h>
@@ -13,8 +15,9 @@
 #include <net/if.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <iptables.h>
 #include <libiptc/libiptc.h>
+
+typedef struct xtc_handle iptc_handle_t;
 
 /* Zdefiniowane operacje: */
 enum opcode {
@@ -259,7 +262,7 @@ void delete_rule(iptc_handle_t *h, struct rule* r) {
     int retval;
 
     /* Sprawdzenie czy podany lancuch wystepuje w tablicy: */
-    retval = iptc_is_chain(r->chain, *h);
+    retval = iptc_is_chain(r->chain, h);
     if (!retval) {
         fprintf(stderr, "Chain '%s' does not exist in table '%s'!\n",
                 r->chain, r->table);
@@ -314,7 +317,7 @@ void create_chain(iptc_handle_t *h, struct rule* r) {
 int main(int argc, char **argv) {
 
     struct rule     *r; /* Wskaznik na regule. */
-    iptc_handle_t   h; /* Uchwyt. */
+    struct iptc_handle_t   *h; /* Uchwyt. */
 
     /* parse() zwraca regule na podstawie argumentow wywolania programu: */
     r = parse(argc, argv);
@@ -332,9 +335,9 @@ int main(int argc, char **argv) {
 
     /* Usuniecie reguly: */
     if (r->operation == DELETE_RULE) {
-        delete_rule(&h, r);
+        delete_rule(h, r);
     } else if (r->operation == NEW_CHAIN) { /* Utworzenie lancucha. */
-        create_chain(&h, r);
+        create_chain(h, r);
     }
 
     /* Zwolnienie pamieci zaalokowanej dla reguly w funkcji parse(): */
@@ -343,7 +346,7 @@ int main(int argc, char **argv) {
     if (h) {
         /* Zamkniecie uchwytu (funkcja nie powinna sie wywolac,
          * poniewaz iptc_commit() zwolnila uchwyt 'h'): */
-        iptc_free(&h);
+        iptc_free(h);
     }
 
     exit(EXIT_SUCCESS);
