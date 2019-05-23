@@ -1,8 +1,10 @@
 /*
  * Data:                2009-05-05
+ * Data modyfikacji:    2019-05-23
  * Autor:               Jakub Gasior <quebes@mars.iti.pk.edu.pl>
- * Kompilacja:          $ gcc cipher_cbc.c -lcrypto -o cipher_cbc
- * Uruchamianie:        $ ./cipher_cbc
+ * Zmodyfikował:        Marcin Kurdziel <https://github.com/Kot97>
+ * Kompilacja:          clang -o cipher_ecb cipher_ecb.c -lcrypto 
+ * Uruchamianie:        ./cipher_ecb <padding>
  */
 
 #include <stdio.h>
@@ -11,12 +13,9 @@
 #include <openssl/err.h>
 #include <openssl/evp.h>
 
-int main(int argc, char **argv) {
-
-    /* Wartosc zwracana przez funkcje: */
-    int retval;
-
-    int i, tmp;
+int main(int argc, char **argv) 
+{
+    int retval, tmp;
 
     /* Wiadomosc do zaszfrowania: */
     char plaintext[80] = "MESSAGE_MESSAGE_MESSAGE_MESSAGE_";
@@ -40,22 +39,14 @@ int main(int argc, char **argv) {
 
     /* Klucz: */
     unsigned char key[] = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,
-                           0x00,0x01,0x02,0x03,0x04,0x05
-                          };
-
-    /* Wektor inicjalizacyjny: */
-    unsigned char iv[] = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,
-                          0x00,0x01,0x02,0x03,0x04,0x05
-                         };
-
-    /* Kontekst: */
-    EVP_CIPHER_CTX *ctx;
+                           0x00,0x01,0x02,0x03,0x04,0x05};
 
     const EVP_CIPHER* cipher;
 
-    if (argc != 2) {
+    if (argc != 2) 
+    {
         fprintf(stderr, "Invocation: %s <PADDING>\n", argv[0]);
-        exit(EXIT_FAILURE);
+        return 1;
     }
 
     padding = atoi(argv[1]);
@@ -63,28 +54,29 @@ int main(int argc, char **argv) {
     /* Zaladowanie tekstowych opisow bledow: */
     ERR_load_crypto_strings();
 
-    /* Alokacja pamieci dla kontekstu: */
-    ctx = (EVP_CIPHER_CTX*)malloc(sizeof(EVP_CIPHER_CTX));
+    /* Kontekst: */
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
 
     /* Inicjalizacja kontekstu: */
     EVP_CIPHER_CTX_init(ctx);
 
     /*
-     * Parametry algorytmu AES dla trybu CBC i klucza o rozmiarze 128-bitow.
-     * Liste funkcji typu "EVP_aes_128_cbc()" mozna uzyskac z pliku <openssl/evp.h>.
+     * Parametry algorytmu AES dla trybu ECB i klucza o rozmiarze 128-bitow.
+     * Liste funkcji typu "EVP_aes_128_ecb()" mozna uzyskac z pliku <openssl/evp.h>.
      * Strony podrecznika systemowego nie sa kompletne.
      */
-    cipher = EVP_aes_128_cbc();
+    cipher = EVP_aes_128_ecb();
     fprintf(stdout, "Cipher parameters:\n");
     fprintf(stdout, "Block size: %d\n", block_size = EVP_CIPHER_block_size(cipher));
     fprintf(stdout, "Key length: %d\n\n", EVP_CIPHER_key_length(cipher));
 
     fprintf(stdout, "Encrypting...\n\n");
     /* Konfiguracja kontekstu dla szyfrowania: */
-    retval = EVP_EncryptInit_ex(ctx, cipher, NULL, key, iv);
-    if (!retval) {
+    retval = EVP_EncryptInit_ex(ctx, cipher, NULL, key, NULL);
+    if (!retval) 
+    {
         ERR_print_errors_fp(stderr);
-        exit(EXIT_FAILURE);
+        return 1;
     }
 
     /*
@@ -100,15 +92,17 @@ int main(int argc, char **argv) {
     retval = EVP_EncryptUpdate(ctx, ciphertext, &ciphertext_len,
                                (unsigned char*)plaintext, plaintext_len);
 
-    if (!retval) {
+    if (!retval) 
+    {
         ERR_print_errors_fp(stderr);
-        exit(EXIT_FAILURE);
+        return 1;
     }
 
     retval = EVP_EncryptFinal_ex(ctx, ciphertext + ciphertext_len, &tmp);
-    if (!retval) {
+    if (!retval) 
+    {
         ERR_print_errors_fp(stderr);
-        exit(EXIT_FAILURE);
+        return 1;
     }
 
     /*
@@ -120,25 +114,23 @@ int main(int argc, char **argv) {
     ciphertext_len += tmp;
 
     fprintf(stdout, "Plaintext (hex):\n");
-    for (i= 0; i < plaintext_len;) {
+    for (int i = 0; i < plaintext_len;) 
+    {
         fprintf(stdout, "%02x", (unsigned char)plaintext[i]);
+        ++i;
 
-        i++;
         /* Wypisanie separatora oddzielajacego bloki: */
-        if ((i % block_size == 0) && (i != plaintext_len)) {
-            fprintf(stdout, "-");
-        }
+        if ((i % block_size == 0) && (i != plaintext_len)) fprintf(stdout, "-");
     }
 
     fprintf(stdout, "\nCiphertext (hex):\n");
-    for (i = 0; i < ciphertext_len;) {
+    for (int i = 0; i < ciphertext_len;) 
+    {
         fprintf(stdout, "%02x", ciphertext[i]);
+        ++i;
 
-        i++;
         /* Wypisanie separatora oddzielajacego bloki: */
-        if ((i % block_size == 0) && (i != ciphertext_len)) {
-            fprintf(stdout, "-");
-        }
+        if ((i % block_size == 0) && (i != ciphertext_len)) fprintf(stdout, "-");
     }
 
     fprintf(stdout, "\n\n");
@@ -150,10 +142,11 @@ int main(int argc, char **argv) {
 
     fprintf(stdout, "Decrypting...\n\n");
     /* Konfiguracja kontekstu dla odszyfrowywania: */
-    retval = EVP_DecryptInit_ex(ctx, cipher, NULL, key, iv);
-    if (!retval) {
+    retval = EVP_DecryptInit_ex(ctx, cipher, NULL, key, NULL);
+    if (!retval) 
+    {
         ERR_print_errors_fp(stderr);
-        exit(EXIT_FAILURE);
+        return 1;
     }
 
     /*
@@ -164,12 +157,12 @@ int main(int argc, char **argv) {
     EVP_CIPHER_CTX_set_padding(ctx, padding);
 
     /* Odszyfrowywanie: */
-    retval = EVP_DecryptUpdate(ctx, (unsigned char*)plaintext, &plaintext_len,
-                               ciphertext, ciphertext_len);
+    retval = EVP_DecryptUpdate(ctx, (unsigned char*)plaintext, &plaintext_len, ciphertext, ciphertext_len);
 
-    if (!retval) {
+    if (!retval)
+    {
         ERR_print_errors_fp(stderr);
-        exit(EXIT_FAILURE);
+        return 1;
     }
 
     /*
@@ -177,9 +170,10 @@ int main(int argc, char **argv) {
      * rozmiar bloku wiekszy od dlugosci szyfrogramu (na padding):
      */
     retval = EVP_DecryptFinal_ex(ctx, (unsigned char*)plaintext + plaintext_len, &tmp);
-    if (!retval) {
+    if (!retval) 
+    {
         ERR_print_errors_fp(stderr);
-        exit(EXIT_FAILURE);
+        return 1;
     }
 
     plaintext_len += tmp;
@@ -187,11 +181,10 @@ int main(int argc, char **argv) {
     fprintf(stdout, "Plaintext:\n%s\n", plaintext);
 
     EVP_CIPHER_CTX_cleanup(ctx);
-    if (ctx) {
-        free(ctx);
-    }
+    if (ctx) free(ctx);
+
     /* Zwolnienie tekstowych opisow bledow: */
     ERR_free_strings();
 
-    exit(EXIT_SUCCESS);
+    return 0;
 }

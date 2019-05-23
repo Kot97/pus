@@ -1,9 +1,11 @@
 /*
  * Data:                2009-05-05
+ * Data modyfikacji:    2019-05-23
  * Autor:               Jakub Gasior <quebes@mars.iti.pk.edu.pl>
- * Kompilacja:          $ gcc digest.c -lcrypto -o digest
- * Uruchamianie:        $ ./digest <nazwa funkcji>
- *                      $ ./digest <nazwa funkcji> < NAZWA_PLIKU
+ * Zmodyfikował:        Marcin Kurdziel <https://github.com/Kot97>
+ * Kompilacja:          clang -o digest digest.c -lcrypto 
+ * Uruchamianie:        ./digest <nazwa funkcji>
+ *                      ./digest <nazwa funkcji> < NAZWA_PLIKU
  */
 
 #include <stdio.h>
@@ -12,12 +14,10 @@
 #include <openssl/err.h>
 #include <openssl/evp.h>
 
-int main(int argc, char **argv) {
-
+int main(int argc, char **argv) 
+{
     /* Wartosc zwracana przez funkcje: */
     int retval;
-
-    int i;
 
     /* Wiadomosc: */
     char message[64];
@@ -28,16 +28,13 @@ int main(int argc, char **argv) {
     /* Rozmiar tekstu i szyfrogramu: */
     unsigned int message_len, digest_len;
 
-    /* Kontekst: */
-    EVP_MD_CTX *ctx;
-
     const EVP_MD* md;
 
-    if (argc != 2) {
+    if (argc != 2) 
+    {
         fprintf(stderr, "Invocation: %s <DIGEST NAME>\n", argv[0]);
-        exit(EXIT_FAILURE);
+        return 1;
     }
-
 
     /* Zaladowanie tekstowych opisow bledow: */
     ERR_load_crypto_strings();
@@ -49,21 +46,23 @@ int main(int argc, char **argv) {
     OpenSSL_add_all_digests();
 
     md = EVP_get_digestbyname(argv[1]);
-    if (!md) {
+    if (!md) 
+    {
         fprintf(stderr, "Unknown message digest: %s\n", argv[1]);
-        exit(EXIT_FAILURE);
+        return 1;
     }
 
     /* Pobranie maksymalnie 64 znakow ze standardowego wejscia: */
-    if (fgets(message, 64, stdin) == NULL) {
+    if (fgets(message, 64, stdin) == NULL) 
+    {
         fprintf(stderr, "fgets() failed!\n");
-        exit(EXIT_FAILURE);
+        return 1;
     }
 
     message_len = strlen(message);
 
-    /* Alokacja pamieci dla kontekstu: */
-    ctx = (EVP_MD_CTX*)malloc(sizeof(EVP_MD_CTX));
+    /* Kontekst: */
+    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
 
     /* Inicjalizacja kontekstu: */
     EVP_MD_CTX_init(ctx);
@@ -75,44 +74,43 @@ int main(int argc, char **argv) {
 
     /* Konfiguracja kontekstu: */
     retval = EVP_DigestInit_ex(ctx, md, NULL);
-    if (!retval) {
+    if (!retval) 
+    {
         ERR_print_errors_fp(stderr);
-        exit(EXIT_FAILURE);
+        return 1;
     }
 
     /* Obliczenie skrotu: */
     retval = EVP_DigestUpdate(ctx, message, message_len);
-    if (!retval) {
+    if (!retval) 
+    {
         ERR_print_errors_fp(stderr);
-        exit(EXIT_FAILURE);
+        return 1;
     }
 
     /*Zapisanie skrotu w buforze 'digest': */
     retval = EVP_DigestFinal_ex(ctx, digest, &digest_len);
-    if (!retval) {
+    if (!retval) 
+    {
         ERR_print_errors_fp(stderr);
-        exit(EXIT_FAILURE);
+        return 1;
     }
 
     /*
      * Usuwa wszystkie informacje z kontekstu i zwalnia pamiec zwiazana
      * z kontekstem:
      */
-    EVP_MD_CTX_cleanup(ctx);
+    EVP_MD_CTX_free(ctx);
 
     /* Usuniecie nazw funkcji skrotu z pamieci. */
     EVP_cleanup();
 
     fprintf(stdout, "Digest (hex): ");
-    for (i = 0; i < digest_len; i++) {
-        fprintf(stdout, "%02x", digest[i]);
-    }
+    for (int i = 0; i < digest_len; ++i) fprintf(stdout, "%02x", digest[i]);
 
     fprintf(stdout, "\n");
 
-    if (ctx) {
-        free(ctx);
-    }
+    if (ctx) free(ctx);
 
     /* Zwolnienie tekstowych opisow bledow: */
     ERR_free_strings();

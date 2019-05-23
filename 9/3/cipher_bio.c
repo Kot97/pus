@@ -1,9 +1,11 @@
 /*
  * Data:                2009-05-05
+ * Data modyfikacji:    2019-05-23
  * Autor:               Jakub Gasior <quebes@mars.iti.pk.edu.pl>
- * Kompilacja:          $ gcc cipher_bio.c -lcrypto -o cipher_bio
- * Uruchamianie:        $ ./cipher_bio
- *                      $ ./cipher_bio < NAZWA_PLIKU
+ * Zmodyfikował:        Marcin Kurdziel <https://github.com/Kot97>
+ * Kompilacja:          clang -o cipher_bio cipher_bio.c -lcrypto 
+ * Uruchamianie:        ./cipher_bio
+ *                      ./cipher_bio < NAZWA_PLIKU
  */
 
 #include <stdio.h>
@@ -13,8 +15,8 @@
 #include <openssl/evp.h>
 #include <openssl/bio.h>
 
-int main(int argc, char **argv) {
-
+int main(int argc, char **argv) 
+{
     /* Wiadomosc do zaszfrowania: */
     char plaintext[80];
 
@@ -23,13 +25,11 @@ int main(int argc, char **argv) {
 
     /* Klucz: */
     unsigned char key[] = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,
-                           0x00,0x01,0x02,0x03,0x04,0x05
-                          };
+                           0x00,0x01,0x02,0x03,0x04,0x05};
 
     /* Wektor inicjalizacyjny: */
     unsigned char iv[] = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,
-                          0x00,0x01,0x02,0x03,0x04,0x05
-                         };
+                          0x00,0x01,0x02,0x03,0x04,0x05};
 
     BIO *bio_encrypt, *bio_base64, *bio_stdout;
 
@@ -37,9 +37,10 @@ int main(int argc, char **argv) {
     ERR_load_crypto_strings();
 
     /* Pobranie maksymalnie 64 znakow ze standardowego wejscia: */
-    if (fgets(plaintext, 64, stdin) == NULL) {
+    if (fgets(plaintext, 64, stdin) == NULL) 
+    {
         fprintf(stderr, "fgets() failed!\n");
-        exit(EXIT_FAILURE);
+        return 1;
     }
 
     plaintext_len = strlen(plaintext);
@@ -65,17 +66,18 @@ int main(int argc, char **argv) {
     BIO_push(bio_base64, bio_stdout);
 
     /* Wysylanie tekstu jawnego do lancucha BIO: */
-    if (BIO_write(bio_encrypt, plaintext, plaintext_len) <= 0) {
-        if (!BIO_should_retry(bio_encrypt)) {
+    if (BIO_write(bio_encrypt, plaintext, plaintext_len) <= 0) 
+        if (!BIO_should_retry(bio_encrypt)) 
+        {
             ERR_print_errors_fp(stderr);
-            exit(EXIT_FAILURE);
+            return 1;
         }
-    }
 
     /* Oproznienie wewnetrznego bufora: */
-    if (BIO_flush(bio_encrypt) != 1) {
+    if (BIO_flush(bio_encrypt) != 1) 
+    {
         ERR_print_errors_fp(stderr);
-        exit(EXIT_FAILURE);
+        return 1;
     }
 
     /* Zwolnienie lancucha BIO: */
@@ -88,5 +90,5 @@ int main(int argc, char **argv) {
      * Weryfikacja:
      * openssl enc -aes-128-cbc -K 00010203040506070809000102030405 -iv 00010203040506070809000102030405 -a -in plaintext
      */
-    exit(EXIT_SUCCESS);
+    return 0;
 }
