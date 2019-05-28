@@ -14,6 +14,23 @@
 #include <string.h>
 #include <errno.h>
 
+#include <stdlib.h>
+#include <time.h>
+#include <limits.h>
+
+char* generate_iv()
+{
+    srand(time(NULL));
+    char* iv = (char*) malloc(16*sizeof(char));
+    int i;
+    for(i=0; i<16; i++)
+    {
+        iv[i] = rand()%(CHAR_MAX+1);
+    }
+
+    return iv;
+}
+
 int main(int argc, char** argv) {
 
     int             sockfd;                 /* Desktryptor gniazda. */
