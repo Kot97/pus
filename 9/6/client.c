@@ -18,6 +18,9 @@
 #include <time.h>
 #include <limits.h>
 
+/* Generuje losowe iv
+ *należy zwolnić później zaalokowaną pamięć poprzez free()
+ */
 char* generate_iv()
 {
     srand(time(NULL));
