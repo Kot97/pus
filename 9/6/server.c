@@ -14,6 +14,13 @@
 #include <string.h>
 #include <errno.h>
 
+#include <stdlib.h>
+// #include <time.h>
+// #include <limits.h>
+#include <openssl/err.h>
+#include <openssl/evp.h>
+#include <openssl/hmac.h>
+
 int main(int argc, char** argv) {
 
     int             sockfd; /* Deskryptor gniazda. */
@@ -81,6 +88,79 @@ int main(int argc, char** argv) {
             inet_ntop(AF_INET, &client_addr.sin_addr, addr_buff, sizeof(addr_buff)),
             ntohs(client_addr.sin_port)
            );
+
+
+
+    char* iv[16];
+
+    /* Oczekiwanie na dane od klienta: */
+    retval = recvfrom(
+                 sockfd,
+                 iv, sizeof(iv),
+                 0,
+                 (struct sockaddr*)&client_addr, &client_addr_len
+             );
+    if (retval == -1) {
+        perror("recvfrom()");
+        exit(EXIT_FAILURE);
+    }
+
+    fprintf(stdout, "UDP datagram with iv received from %s:%d.\n",
+            inet_ntop(AF_INET, &client_addr.sin_addr, addr_buff, sizeof(addr_buff)),
+            ntohs(client_addr.sin_port)
+           );
+
+
+
+    ERR_load_crypto_strings();
+
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    const EVP_CIPHER* cipher = EVP_aes_128_cbc();
+    unsigned char   cbc_psk[] = "Klucz CBC";
+
+    retval = EVP_DecryptInit_ex(ctx, cipher, NULL, cbc_psk, iv);
+    if (!retval) 
+    {
+        ERR_print_errors_fp(stderr);
+        return 1;
+    }
+
+    /*
+     * Domyslnie OpenSSL stosuje padding. 0 - padding nie bedzie stosowany.
+     * Funkcja moze byc wywolana tylko po konfiguracji kontekstu
+     * dla szyfrowania/deszyfrowania (odzielnie dla kazdej operacji).
+     */
+    EVP_CIPHER_CTX_set_padding(ctx, 8);
+    int bufflen = strlen(buff);
+    char message[256];
+    int messagelen = 0;
+
+    /* Odszyfrowywanie: */
+    retval = EVP_DecryptUpdate(ctx, (unsigned char*)message, &messagelen, buff, bufflen);
+
+    if (!retval) 
+    {
+        ERR_print_errors_fp(stderr);
+        return 1;
+    }
+
+    /*
+     * Prosze zwrocic uwage, ze rozmiar bufora 'plaintext' musi byc co najmniej o
+     * rozmiar bloku wiekszy od dlugosci szyfrogramu (na padding):
+     */
+    int tmp = 0;
+    retval = EVP_DecryptFinal_ex(ctx, (unsigned char*)buff + bufflen, &tmp);
+    if (!retval) 
+    {
+        ERR_print_errors_fp(stderr);
+        return 1;
+    }
+
+
+
+    EVP_CIPHER_CTX_cleanup(ctx);
+    ERR_free_strings();
+
 
     fprintf(stdout, "Message: ");
     fwrite(buff, sizeof(char), retval, stdout);
