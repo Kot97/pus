@@ -3,3 +3,5 @@
 *.test
 *.out
 *.run
+9/**/*.txt
+9/**/*.key
