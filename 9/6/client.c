@@ -80,7 +80,8 @@ int main(int argc, char** argv) {
     addr_len = sizeof(remote_addr); /* Rozmiar struktury adresowej w bajtach. */
 
 
-    unsigned char* iv = generate_iv();
+    // unsigned char* iv = generate_iv();
+    unsigned char iv[] = "123456789asdfghj";
 
     ERR_load_crypto_strings();
 
@@ -88,7 +89,7 @@ int main(int argc, char** argv) {
 
     char buff[256];
     int buff_len = 0;
-    snprintf(buff, sizeof(buff), "%s\n%s", hmac, message);
+    snprintf(buff, sizeof(buff), "%s|%s", hmac, message);
 
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
     EVP_CIPHER_CTX_init(ctx);
@@ -115,14 +116,15 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    retval = EVP_EncryptFinal_ex(ctx, ciphertext + ciphertext_len, &ciphertext_len);
+    int tmp = 0;
+    retval = EVP_EncryptFinal_ex(ctx, ciphertext + ciphertext_len, &tmp);
     if (!retval)
     {
         ERR_print_errors_fp(stderr);
         return 1;
     }
 
-
+    ciphertext_len += tmp;
     EVP_CIPHER_CTX_cleanup(ctx);
 
 
@@ -131,7 +133,7 @@ int main(int argc, char** argv) {
     /* sendto() wysyla dane na adres okreslony przez strukture 'remote_addr': */
     retval = sendto(
                  sockfd,
-                 ciphertext, strlen(ciphertext),
+                 ciphertext, ciphertext_len,
                  0,
                  (struct sockaddr*)&remote_addr, addr_len
              );
@@ -148,7 +150,7 @@ int main(int argc, char** argv) {
 
 
 
-    free(iv);
+    // free(iv);
     ERR_free_strings();
 
 

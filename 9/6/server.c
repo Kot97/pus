@@ -91,24 +91,28 @@ int main(int argc, char** argv) {
 
 
 
-    char* iv[16];
+    // unsigned char iv[20];
 
-    /* Oczekiwanie na dane od klienta: */
-    retval = recvfrom(
-                 sockfd,
-                 iv, sizeof(iv),
-                 0,
-                 (struct sockaddr*)&client_addr, &client_addr_len
-             );
-    if (retval == -1) {
-        perror("recvfrom()");
-        exit(EXIT_FAILURE);
-    }
+    // /* Oczekiwanie na dane od klienta: */
+    // retval = recvfrom(
+    //              sockfd,
+    //              iv, sizeof(iv),
+    //              0,
+    //              (struct sockaddr*)&client_addr, &client_addr_len
+    //          );
+    // if (retval == -1) {
+    //     perror("recvfrom()");
+    //     exit(EXIT_FAILURE);
+    // }
 
-    fprintf(stdout, "UDP datagram with iv received from %s:%d.\n",
-            inet_ntop(AF_INET, &client_addr.sin_addr, addr_buff, sizeof(addr_buff)),
-            ntohs(client_addr.sin_port)
-           );
+    // fprintf(stdout, "UDP datagram with iv received from %s:%d.\n",
+    //         inet_ntop(AF_INET, &client_addr.sin_addr, addr_buff, sizeof(addr_buff)),
+    //         ntohs(client_addr.sin_port)
+    //        );
+
+    unsigned char iv[] = "123456789asdfghj";
+
+    
 
 
 
@@ -121,6 +125,7 @@ int main(int argc, char** argv) {
     retval = EVP_DecryptInit_ex(ctx, cipher, NULL, cbc_psk, iv);
     if (!retval) 
     {
+        fprintf(stderr, "DecryptInit\n");
         ERR_print_errors_fp(stderr);
         return 1;
     }
@@ -149,22 +154,37 @@ int main(int argc, char** argv) {
      * rozmiar bloku wiekszy od dlugosci szyfrogramu (na padding):
      */
     int tmp = 0;
-    retval = EVP_DecryptFinal_ex(ctx, (unsigned char*)buff + bufflen, &tmp);
+    retval = EVP_DecryptFinal_ex(ctx, (unsigned char*)message + messagelen, &tmp);
     if (!retval) 
     {
+        fprintf(stderr, "DecryptFinal\n");
         ERR_print_errors_fp(stderr);
         return 1;
     }
 
+    messagelen += tmp;
+    message[messagelen] = '\0';
 
+    char* plaintext;
+    int plaintextlen;
+    unsigned char* hmac;
+    int hmaclen;
+
+    hmac = strtok(buff, "\n");
+    plaintext = strtok(NULL, "\n");
+    plaintextlen = strlen(plaintext);
+    hmaclen = strlen(hmac);
+
+    unsigned char   hmac_psk[] = "Klucz HMAC";
+    unsigned char* hmac2 = HMAC(EVP_md5(), hmac_psk, strlen(hmac_psk), (unsigned char*)plaintext, strlen(plaintext), NULL, NULL);
+
+    int hmac_compare_result = strcmp(hmac, hmac2);
 
     EVP_CIPHER_CTX_cleanup(ctx);
     ERR_free_strings();
 
-
-    fprintf(stdout, "Message: ");
-    fwrite(buff, sizeof(char), retval, stdout);
-    fprintf(stdout, "\n");
+    printf("HMAC: %s\n", (hmac_compare_result==0) ? "Correct" : "Incorrect");
+    printf("Message: %s\n", plaintext);
 
     close(sockfd);
     exit(EXIT_SUCCESS);
