@@ -110,6 +110,7 @@ int main(int argc, char** argv) {
     //         ntohs(client_addr.sin_port)
     //        );
 
+    //Używam podanego na sztywno iv, żeby ogarniczyć źródło błędów do testów.
     unsigned char iv[] = "123456789asdfghj";
 
     
@@ -153,11 +154,14 @@ int main(int argc, char** argv) {
      * Prosze zwrocic uwage, ze rozmiar bufora 'plaintext' musi byc co najmniej o
      * rozmiar bloku wiekszy od dlugosci szyfrogramu (na padding):
      */
+    //testowo wypisuję messagelen i tmp, gdzieś tu pojawia się błąd
     int tmp = 0;
+    fprintf(stderr, "%d\n", messagelen);
     retval = EVP_DecryptFinal_ex(ctx, (unsigned char*)message + messagelen, &tmp);
     if (!retval) 
     {
         fprintf(stderr, "DecryptFinal\n");
+        fprintf(stderr, "%d\n", tmp);
         ERR_print_errors_fp(stderr);
         return 1;
     }

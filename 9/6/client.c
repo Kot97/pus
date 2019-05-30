@@ -123,6 +123,8 @@ int main(int argc, char** argv) {
         ERR_print_errors_fp(stderr);
         return 1;
     }
+    //wypisywanie długości szyfrogramu i paddingu do debugu
+    fprintf(stderr, "%d %d\n", ciphertext_len, tmp);
 
     ciphertext_len += tmp;
     EVP_CIPHER_CTX_cleanup(ctx);
